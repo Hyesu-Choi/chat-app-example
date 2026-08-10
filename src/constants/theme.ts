@@ -62,4 +62,6 @@ export const Spacing = {
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
+// 웹에서는 탭 바가 화면 상단에 떠 있어서 그만큼 내용을 아래로 내려야 함
+export const TopTabInset = Platform.select({ web: 80 }) ?? 0;
 export const MaxContentWidth = 800;
