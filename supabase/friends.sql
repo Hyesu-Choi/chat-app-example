@@ -89,3 +89,6 @@ create policy "addressee accepts requests" on public.friendships
 create policy "participants delete friendships" on public.friendships
   for delete to authenticated
   using ((select auth.uid()) in (requester_id, addressee_id));
+
+-- 실시간 구독 활성화 (INSERT/UPDATE 이벤트는 RLS가 적용되어 내 관계만 받음)
+alter publication supabase_realtime add table public.friendships;

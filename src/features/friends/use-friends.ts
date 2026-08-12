@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { supabase, uniqueChannelName } from '@/lib/supabase';
+
 import {
   acceptFriendRequest,
   fetchFriendships,
@@ -20,6 +22,33 @@ export function useFriends(myUserId: string | undefined) {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // 상대가 수락·거절·신청하면 실시간으로 목록 갱신
+  useEffect(() => {
+    if (!myUserId) return;
+
+    const channel = supabase
+      .channel(uniqueChannelName(`friendships:${myUserId}`))
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'friendships' },
+        (payload) => {
+          const row = (payload.eventType === 'DELETE' ? payload.old : payload.new) as {
+            requester_id?: string;
+            addressee_id?: string;
+          };
+          // INSERT/UPDATE는 RLS 덕에 내 행만 오지만, DELETE는 모두에게 와서 직접 거름
+          if (row.requester_id === myUserId || row.addressee_id === myUserId) {
+            refresh();
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [myUserId, refresh]);
 
   // 관계 행에서 "상대방" 프로필을 꺼냄
   const otherOf = (row: FriendshipRow): Profile =>
